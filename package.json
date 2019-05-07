@@ -63,7 +63,10 @@
                     },
                     "clangTidyAdapter.pathFilters": {
                         "type": "array",
-                        "default": [".*"],
+                        "default": [
+                            "\\bmingw\\b",
+                            "\\bmsvc\\b",
+                            "\\bclang\\b"],
                         "description": "Filters to exclude header files (e.g. for header files not in your control)."
                     },
                     "clangTidyAdapter.checks": {

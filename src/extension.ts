@@ -77,20 +77,13 @@ function constructCommand(workspace: vscode.WorkspaceFolder, document: vscode.Te
         return undefined;
     }
 
-    const pathFilters = getConfig<string[]>('pathFilters');
-    if (pathFilters === undefined) {
-        console.error(`Missing "pathFilters" for clang-tidy.`);
-        return undefined;
-    }
-
     // relative path to input file
     const inputFile = path.relative(workspace.uri.fsPath, document.uri.fsPath);
 
     const compilerArgsJoined = extraCompilerArgs.join(' ') + ` -std=${languageStandard}`;
     const checksJoined = checks.join(',');
-    const pathFiltersJoined = pathFilters.join(',');
 
-    const command = `${executableLocation} -header-filter=${pathFiltersJoined} -checks=${checksJoined} ${inputFile} -- ${compilerArgsJoined}`;
+    const command = `${executableLocation} -checks=${checksJoined} ${inputFile} -- ${compilerArgsJoined}`;
 
     return command;
 }
@@ -148,9 +141,21 @@ function parseWarnings(rawWarnings: string) : Map<string, vscode.Diagnostic[]> {
             },
         );
 
-    // group by uri
+    // gather grouped results
     const result = new Map<string, vscode.Diagnostic[]>();
-    allDiagnostics.forEach(
+
+    // filter by path filters
+    const pathFilters = getConfig<string[]>('pathFilters');
+    if (pathFilters === undefined) {
+        console.error(`Missing "pathFilters" for clang-tidy.`);
+        return result;
+    }
+    const pathFiltersJoined = new RegExp(pathFilters.join('|'), 'i');
+
+    const filteredDiagnostics = allDiagnostics.filter(v => pathFiltersJoined.test(v[0]) === false);
+
+    // group by uri
+    filteredDiagnostics.forEach(
         v => {
             const file = v[0];
             const diag = v[1];
@@ -190,13 +195,13 @@ function checkWarnings(
             if (null !== err) {
                 console.error(stderr.toString());
             }
+            // remove previous warnings from collection
+            collection.clear();
             const rawWarnings = stdout.toString();
             const parsedWarnings = parseWarnings(rawWarnings);
             parsedWarnings.forEach(
                 (value, key) => {
-                    // remove previous warnings from collection
                     const uri = vscode.Uri.file(key);
-                    collection.delete(uri);
                     collection.set(uri, value);
                 },
             );
