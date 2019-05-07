@@ -44,7 +44,7 @@
     "no-banned-terms": true,
     "no-bitwise": true,
     "no-boolean-literal-compare": false,
-    "no-conditional-assignment": true,
+    "no-conditional-assignment": false,
     "no-consecutive-blank-lines": [true],
     "no-constant-condition": true,
     "no-construct": true,
